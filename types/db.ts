@@ -1,5 +1,7 @@
 export interface Database {
   public: {
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
     Tables: {
       preferences: {
         Row: {
@@ -10,13 +12,21 @@ export interface Database {
           dietary_restrictions: string[];
           updated_at: string;
         };
-        Insert: Omit<
-          Database['public']['Tables']['preferences']['Row'],
-          'updated_at'
-        >;
-        Update: Partial<
-          Database['public']['Tables']['preferences']['Insert']
-        >;
+        Insert: {
+          user_id: string;
+          likes?: string[];
+          dislikes?: string[];
+          allergies?: string[];
+          dietary_restrictions?: string[];
+        };
+        Update: {
+          user_id?: string;
+          likes?: string[];
+          dislikes?: string[];
+          allergies?: string[];
+          dietary_restrictions?: string[];
+        };
+        Relationships: [];
       };
       meals_log: {
         Row: {
@@ -28,13 +38,21 @@ export interface Database {
           eaten_at: string;
           created_at: string;
         };
-        Insert: Omit<
-          Database['public']['Tables']['meals_log']['Row'],
-          'id' | 'created_at'
-        >;
-        Update: Partial<
-          Database['public']['Tables']['meals_log']['Insert']
-        >;
+        Insert: {
+          user_id: string;
+          name: string;
+          category: string;
+          form: string;
+          eaten_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          name?: string;
+          category?: string;
+          form?: string;
+          eaten_at?: string;
+        };
+        Relationships: [];
       };
       suggestions_log: {
         Row: {
@@ -48,13 +66,25 @@ export interface Database {
           latency_ms: number | null;
           created_at: string;
         };
-        Insert: Omit<
-          Database['public']['Tables']['suggestions_log']['Row'],
-          'id' | 'created_at'
-        >;
-        Update: Partial<
-          Database['public']['Tables']['suggestions_log']['Insert']
-        >;
+        Insert: {
+          user_id?: string | null;
+          input: Record<string, unknown>;
+          normalized_input?: Record<string, unknown> | null;
+          excluded_rules?: string[];
+          candidates: Record<string, unknown>[];
+          accepted_candidate_id?: string | null;
+          latency_ms?: number | null;
+        };
+        Update: {
+          user_id?: string | null;
+          input?: Record<string, unknown>;
+          normalized_input?: Record<string, unknown> | null;
+          excluded_rules?: string[];
+          candidates?: Record<string, unknown>[];
+          accepted_candidate_id?: string | null;
+          latency_ms?: number | null;
+        };
+        Relationships: [];
       };
       events_log: {
         Row: {
@@ -64,13 +94,17 @@ export interface Database {
           properties: Record<string, unknown>;
           created_at: string;
         };
-        Insert: Omit<
-          Database['public']['Tables']['events_log']['Row'],
-          'id' | 'created_at'
-        >;
-        Update: Partial<
-          Database['public']['Tables']['events_log']['Insert']
-        >;
+        Insert: {
+          user_id?: string | null;
+          event_name: string;
+          properties?: Record<string, unknown>;
+        };
+        Update: {
+          user_id?: string | null;
+          event_name?: string;
+          properties?: Record<string, unknown>;
+        };
+        Relationships: [];
       };
     };
   };
