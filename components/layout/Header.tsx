@@ -29,12 +29,14 @@ export function Header() {
     const email = prompt('メールアドレスを入力してください');
     if (!email) return;
     const supabase = createClient();
+    const base = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
+    const redirectTo = `${base}/auth/callback`;
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { emailRedirectTo: redirectTo },
     });
     if (error) {
-      alert(`ログインエラー: ${error.message}`);
+      alert(`ログインエラー: ${error.message}\n\nRedirect URL: ${redirectTo}`);
     } else {
       alert('メールを確認してください');
     }
