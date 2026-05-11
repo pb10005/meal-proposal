@@ -29,11 +29,15 @@ export function Header() {
     const email = prompt('メールアドレスを入力してください');
     if (!email) return;
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({ email });
+    const emailRedirectTo = `${window.location.origin}/auth/callback`;
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo },
+    });
     if (error) {
       alert(`ログインエラー: ${error.message}`);
     } else {
-      alert('メールを確認してください');
+      alert('メールを確認してください。受信後リンクをクリックするとログインできます。');
     }
   };
 
