@@ -26,12 +26,18 @@ export function Header() {
   }, []);
 
   const handleSignIn = async () => {
+    const email = prompt('メールアドレスを入力してください');
+    if (!email) return;
     const supabase = createClient();
-    await supabase.auth.signInWithOtp({
-      email: prompt('メールアドレスを入力してください') ?? '',
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
-    alert('メールを確認してください');
+    if (error) {
+      alert(`ログインエラー: ${error.message}`);
+    } else {
+      alert('メールを確認してください');
+    }
   };
 
   const handleSignOut = async () => {
