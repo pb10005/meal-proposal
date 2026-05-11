@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Header } from '@/components/layout/Header';
+import { Suspense } from 'react';
+import { AuthCodeHandler } from '@/components/auth/AuthCodeHandler';
 
 export const metadata: Metadata = {
   title: '今日何食べる？',
@@ -29,6 +31,9 @@ export default function RootLayout({
     <html lang="ja">
       <body className="min-h-screen bg-amber-50 text-gray-900 antialiased">
         <Header />
+        <Suspense>
+          <AuthCodeHandler />
+        </Suspense>
         <main className="max-w-lg mx-auto px-4 py-6 pb-16">{children}</main>
       </body>
     </html>
