@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/Button';
 export function Header() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   useEffect(() => {
+    const supabase = createClient();
+
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
       setLoading(false);
@@ -22,9 +23,10 @@ export function Header() {
     });
 
     return () => sub.subscription.unsubscribe();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSignIn = async () => {
+    const supabase = createClient();
     await supabase.auth.signInWithOtp({
       email: prompt('メールアドレスを入力してください') ?? '',
       options: { emailRedirectTo: window.location.origin },
@@ -33,6 +35,7 @@ export function Header() {
   };
 
   const handleSignOut = async () => {
+    const supabase = createClient();
     await supabase.auth.signOut();
   };
 

@@ -7,7 +7,7 @@ import { MealCardSkeleton } from '@/components/meal/MealCardSkeleton';
 import { ExclusionReasons } from '@/components/meal/ExclusionReasons';
 import { Button } from '@/components/ui/Button';
 import type { MealCandidate, SuggestResponse } from '@/types/meal';
-import { trackEvent } from '@/lib/analytics/track';
+import { trackEvent } from '@/lib/analytics/track-client';
 
 function SuggestContent() {
   const router = useRouter();
