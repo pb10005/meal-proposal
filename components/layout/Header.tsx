@@ -29,7 +29,7 @@ export function Header() {
     const supabase = createClient();
     await supabase.auth.signInWithOtp({
       email: prompt('メールアドレスを入力してください') ?? '',
-      options: { emailRedirectTo: window.location.origin },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
     alert('メールを確認してください');
   };
