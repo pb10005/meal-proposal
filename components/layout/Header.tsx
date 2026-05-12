@@ -30,12 +30,14 @@ export function Header() {
     if (!email) return;
     const supabase = createClient();
     const emailRedirectTo = `${window.location.origin}/auth/callback`;
+    console.log('[Auth] emailRedirectTo:', emailRedirectTo);
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo },
     });
     if (error) {
-      alert(`ログインエラー: ${error.message}`);
+      console.error('[Auth] signInWithOtp error:', error);
+      alert(`ログインエラー: ${error.message}\n\n送信先URL: ${emailRedirectTo}\nエラーコード: ${error.status ?? 'none'}`);
     } else {
       alert('メールを確認してください。受信後リンクをクリックするとログインできます。');
     }
