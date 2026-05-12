@@ -29,7 +29,8 @@ export function Header() {
     const email = prompt('メールアドレスを入力してください');
     if (!email) return;
     const supabase = createClient();
-    const emailRedirectTo = `${window.location.origin}/auth/callback`;
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || window.location.origin;
+    const emailRedirectTo = `${siteUrl}/auth/callback`;
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo },
