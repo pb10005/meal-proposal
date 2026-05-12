@@ -15,6 +15,7 @@ cp .env.example .env.local
 - `NEXT_PUBLIC_SUPABASE_URL` - Supabase プロジェクト URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anon key
 - `ANTHROPIC_API_KEY` - Anthropic API key
+- `NEXT_PUBLIC_SITE_URL` - 公開URL（Magic Linkのリダイレクト先。SupabaseのAuth > URL Configurationに同じURLを登録）
 
 ### 2. Supabase のセットアップ
 
