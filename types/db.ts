@@ -35,6 +35,7 @@ export interface Database {
           name: string;
           category: string;
           form: string;
+          timing: string | null;
           eaten_at: string;
           created_at: string;
         };
@@ -43,6 +44,7 @@ export interface Database {
           name: string;
           category: string;
           form: string;
+          timing?: string | null;
           eaten_at?: string;
         };
         Update: {
@@ -50,6 +52,7 @@ export interface Database {
           name?: string;
           category?: string;
           form?: string;
+          timing?: string | null;
           eaten_at?: string;
         };
         Relationships: [];

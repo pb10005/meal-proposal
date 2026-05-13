@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { MEAL_CATEGORY_LABELS, MEAL_CATEGORY_ICONS } from '@/config/meal-categories';
+import { AddMealModal } from '@/components/meal/AddMealModal';
 import type { MealCategory } from '@/types/meal';
 
 interface MealLogEntry {
@@ -10,6 +11,7 @@ interface MealLogEntry {
   name: string;
   category: string;
   form: string;
+  timing: string | null;
   eaten_at: string;
 }
 
@@ -17,6 +19,14 @@ const FORM_LABELS: Record<string, string> = {
   cook: '自炊',
   eat_out: '外食',
   buy: '購入',
+};
+
+const TIMING_LABELS: Record<string, string> = {
+  breakfast: '朝食',
+  lunch: '昼食',
+  snack: 'おやつ',
+  dinner: '夕食',
+  late_night: '夜食',
 };
 
 function formatDate(isoString: string): string {
@@ -38,36 +48,42 @@ export default function HistoryPage() {
   const [meals, setMeals] = useState<MealLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
+  const loadMeals = useCallback(async () => {
     const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    async function load() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        setIsLoggedIn(false);
-        setLoading(false);
-        return;
-      }
-
-      setIsLoggedIn(true);
-
-      const { data } = await supabase
-        .from('meals_log')
-        .select('id, name, category, form, eaten_at')
-        .eq('user_id', user.id)
-        .order('eaten_at', { ascending: false })
-        .limit(50);
-
-      setMeals(data ?? []);
+    if (!user) {
+      setIsLoggedIn(false);
       setLoading(false);
+      return;
     }
 
-    load();
+    setIsLoggedIn(true);
+
+    const { data } = await supabase
+      .from('meals_log')
+      .select('id, name, category, form, timing, eaten_at')
+      .eq('user_id', user.id)
+      .order('eaten_at', { ascending: false })
+      .limit(50);
+
+    setMeals(data ?? []);
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    loadMeals();
+  }, [loadMeals]);
+
+  const handleAdded = useCallback(() => {
+    setShowModal(false);
+    setLoading(true);
+    loadMeals();
+  }, [loadMeals]);
 
   if (loading) {
     return (
@@ -101,53 +117,69 @@ export default function HistoryPage() {
     );
   }
 
-  if (meals.length === 0) {
-    return (
-      <div className="text-center py-20 space-y-3">
-        <p className="text-4xl">📋</p>
-        <h2 className="text-lg font-bold text-gray-700">まだ食事記録がありません</h2>
-        <p className="text-sm text-gray-500">
-          提案から「これにする」を選ぶと自動で記録されます。
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-5 pt-2">
-      <h1 className="text-xl font-bold text-gray-900">食事履歴</h1>
-      <p className="text-sm text-gray-500 -mt-3">
-        最近の食事を参考に、重複しない提案を行います
-      </p>
-
-      <div className="space-y-3">
-        {meals.map((meal) => {
-          const icon = MEAL_CATEGORY_ICONS[meal.category as MealCategory] ?? '🍽️';
-          const categoryLabel =
-            MEAL_CATEGORY_LABELS[meal.category as MealCategory] ?? meal.category;
-          const formLabel = FORM_LABELS[meal.form] ?? meal.form;
-
-          return (
-            <div
-              key={meal.id}
-              className="bg-white rounded-2xl border border-amber-50 p-4 flex items-center gap-3"
-            >
-              <span className="text-2xl flex-shrink-0" aria-hidden="true">
-                {icon}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900 truncate">{meal.name}</p>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {categoryLabel} · {formLabel}
-                </p>
-              </div>
-              <span className="text-xs text-gray-400 flex-shrink-0">
-                {formatDate(meal.eaten_at)}
-              </span>
-            </div>
-          );
-        })}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">食事履歴</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            最近の食事を参考に、重複しない提案を行います
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-sm font-medium px-3 py-2 rounded-xl transition-colors"
+        >
+          <span className="text-base leading-none">＋</span>
+          記録する
+        </button>
       </div>
+
+      {meals.length === 0 ? (
+        <div className="text-center py-16 space-y-3">
+          <p className="text-4xl">📋</p>
+          <h2 className="text-lg font-bold text-gray-700">まだ食事記録がありません</h2>
+          <p className="text-sm text-gray-500">
+            提案から「これにする」を選ぶか、「記録する」から手動で追加できます。
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {meals.map((meal) => {
+            const icon = MEAL_CATEGORY_ICONS[meal.category as MealCategory] ?? '🍽️';
+            const categoryLabel =
+              MEAL_CATEGORY_LABELS[meal.category as MealCategory] ?? meal.category;
+            const formLabel = FORM_LABELS[meal.form] ?? meal.form;
+            const timingLabel = meal.timing ? TIMING_LABELS[meal.timing] : null;
+
+            return (
+              <div
+                key={meal.id}
+                className="bg-white rounded-2xl border border-amber-50 p-4 flex items-center gap-3"
+              >
+                <span className="text-2xl flex-shrink-0" aria-hidden="true">
+                  {icon}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 truncate">{meal.name}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {timingLabel && <span className="text-amber-600 font-medium">{timingLabel} · </span>}
+                    {categoryLabel} · {formLabel}
+                  </p>
+                </div>
+                <span className="text-xs text-gray-400 flex-shrink-0">
+                  {formatDate(meal.eaten_at)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {showModal && (
+        <AddMealModal onClose={() => setShowModal(false)} onAdded={handleAdded} />
+      )}
     </div>
   );
 }
