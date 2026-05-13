@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/Button';
 import { Tag } from '@/components/ui/Tag';
@@ -161,12 +162,18 @@ export default function SettingsPage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="text-center py-20 space-y-3">
+      <div className="text-center py-20 space-y-4">
         <p className="text-4xl">🔒</p>
         <h2 className="text-lg font-bold text-gray-700">ログインが必要です</h2>
         <p className="text-sm text-gray-500">
           好みの設定を保存するにはログインしてください。
         </p>
+        <Link
+          href="/login"
+          className="inline-block mt-2 bg-amber-500 hover:bg-amber-600 text-white font-medium px-6 py-2.5 rounded-xl transition-colors"
+        >
+          ログインする
+        </Link>
       </div>
     );
   }

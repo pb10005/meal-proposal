@@ -5,9 +5,19 @@ import { Button } from '@/components/ui/Button';
 import { MEAL_CATEGORIES, type MealCategory, type MealForm, type MealTiming } from '@/types/meal';
 import { MEAL_CATEGORY_LABELS, MEAL_CATEGORY_ICONS } from '@/config/meal-categories';
 
-interface AddMealModalProps {
+interface MealLogEntry {
+  id: string;
+  name: string;
+  category: string;
+  form: string;
+  timing: string | null;
+  eaten_at: string;
+}
+
+interface EditMealModalProps {
+  meal: MealLogEntry;
   onClose: () => void;
-  onAdded: () => void;
+  onSaved: (updated: MealLogEntry) => void;
 }
 
 const FORM_OPTIONS: { value: MealForm; label: string }[] = [
@@ -24,17 +34,18 @@ const TIMING_OPTIONS: { value: MealTiming; label: string }[] = [
   { value: 'late_night', label: '夜食' },
 ];
 
-function toLocalDatetimeValue(date: Date): string {
+function toLocalDatetimeValue(isoString: string): string {
+  const date = new Date(isoString);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-export function AddMealModal({ onClose, onAdded }: AddMealModalProps) {
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState<MealCategory>('other');
-  const [form, setForm] = useState<MealForm>('eat_out');
-  const [timing, setTiming] = useState<MealTiming | null>(null);
-  const [eatenAt, setEatenAt] = useState(toLocalDatetimeValue(new Date()));
+export function EditMealModal({ meal, onClose, onSaved }: EditMealModalProps) {
+  const [name, setName] = useState(meal.name);
+  const [category, setCategory] = useState<MealCategory>(meal.category as MealCategory);
+  const [form, setForm] = useState<MealForm>(meal.form as MealForm);
+  const [timing, setTiming] = useState<MealTiming | null>(meal.timing as MealTiming | null);
+  const [eatenAt, setEatenAt] = useState(toLocalDatetimeValue(meal.eaten_at));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,26 +57,33 @@ export function AddMealModal({ onClose, onAdded }: AddMealModalProps) {
     setError(null);
 
     try {
-      const res = await fetch('/api/meals', {
-        method: 'POST',
+      const res = await fetch(`/api/meals/${meal.id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name.trim(),
           category,
           form,
-          ...(timing ? { timing } : {}),
+          timing: timing ?? null,
           eaten_at: new Date(eatenAt).toISOString(),
         }),
       });
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error ?? '保存に失敗しました');
+        throw new Error(data.error ?? '更新に失敗しました');
       }
 
-      onAdded();
+      onSaved({
+        ...meal,
+        name: name.trim(),
+        category,
+        form,
+        timing,
+        eaten_at: new Date(eatenAt).toISOString(),
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : '保存に失敗しました');
+      setError(err instanceof Error ? err.message : '更新に失敗しました');
     } finally {
       setSubmitting(false);
     }
@@ -80,7 +98,7 @@ export function AddMealModal({ onClose, onAdded }: AddMealModalProps) {
     >
       <div className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-xl p-6 pb-8 sm:pb-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold text-gray-900">食事を記録</h2>
+          <h2 className="text-lg font-bold text-gray-900">食事を編集</h2>
           <button
             type="button"
             onClick={onClose}
@@ -183,7 +201,7 @@ export function AddMealModal({ onClose, onAdded }: AddMealModalProps) {
             isLoading={submitting}
             disabled={!name.trim()}
           >
-            記録する
+            保存する
           </Button>
         </form>
       </div>

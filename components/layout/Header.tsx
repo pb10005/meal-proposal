@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 export function Header() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const supabase = createClient();
@@ -25,22 +27,8 @@ export function Header() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const handleSignIn = async () => {
-    const email = prompt('メールアドレスを入力してください');
-    if (!email) return;
-    const supabase = createClient();
-    const emailRedirectTo = `${window.location.origin}/auth/callback`;
-    console.log('[Auth] emailRedirectTo:', emailRedirectTo);
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo },
-    });
-    if (error) {
-      console.error('[Auth] signInWithOtp error:', error);
-      alert(`ログインエラー: ${error.message}\n\n送信先URL: ${emailRedirectTo}\nエラーコード: ${error.status ?? 'none'}`);
-    } else {
-      alert('メールを確認してください。受信後リンクをクリックするとログインできます。');
-    }
+  const handleSignIn = () => {
+    router.push('/login');
   };
 
   const handleSignOut = async () => {

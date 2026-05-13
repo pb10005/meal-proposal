@@ -1,9 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { MEAL_CATEGORY_LABELS, MEAL_CATEGORY_ICONS } from '@/config/meal-categories';
 import { AddMealModal } from '@/components/meal/AddMealModal';
+import { EditMealModal } from '@/components/meal/EditMealModal';
+import Link from 'next/link';
 import type { MealCategory } from '@/types/meal';
 
 interface MealLogEntry {
@@ -49,6 +51,10 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [editingMeal, setEditingMeal] = useState<MealLogEntry | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   const loadMeals = useCallback(async () => {
     const supabase = createClient();
@@ -79,11 +85,42 @@ export default function HistoryPage() {
     loadMeals();
   }, [loadMeals]);
 
+  // Close menu on outside click
+  useEffect(() => {
+    if (!openMenuId) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openMenuId]);
+
   const handleAdded = useCallback(() => {
     setShowModal(false);
     setLoading(true);
     loadMeals();
   }, [loadMeals]);
+
+  const handleSaved = useCallback((updated: MealLogEntry) => {
+    setMeals((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+    setEditingMeal(null);
+  }, []);
+
+  const handleDelete = useCallback(async (id: string) => {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/meals/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('削除に失敗しました');
+      setMeals((prev) => prev.filter((m) => m.id !== id));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDeletingId(null);
+      setOpenMenuId(null);
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -105,7 +142,7 @@ export default function HistoryPage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="text-center py-20 space-y-3">
+      <div className="text-center py-20 space-y-4">
         <p className="text-4xl">🔒</p>
         <h2 className="text-lg font-bold text-gray-700">ログインが必要です</h2>
         <p className="text-sm text-gray-500">
@@ -113,6 +150,12 @@ export default function HistoryPage() {
           <br />
           履歴は繰り返しを避けるためにも使われます。
         </p>
+        <Link
+          href="/login"
+          className="inline-block mt-2 bg-amber-500 hover:bg-amber-600 text-white font-medium px-6 py-2.5 rounded-xl transition-colors"
+        >
+          ログインする
+        </Link>
       </div>
     );
   }
@@ -152,11 +195,13 @@ export default function HistoryPage() {
               MEAL_CATEGORY_LABELS[meal.category as MealCategory] ?? meal.category;
             const formLabel = FORM_LABELS[meal.form] ?? meal.form;
             const timingLabel = meal.timing ? TIMING_LABELS[meal.timing] : null;
+            const isMenuOpen = openMenuId === meal.id;
+            const isDeleting = deletingId === meal.id;
 
             return (
               <div
                 key={meal.id}
-                className="bg-white rounded-2xl border border-amber-50 p-4 flex items-center gap-3"
+                className="bg-white rounded-2xl border border-amber-50 p-4 flex items-center gap-3 relative"
               >
                 <span className="text-2xl flex-shrink-0" aria-hidden="true">
                   {icon}
@@ -164,13 +209,50 @@ export default function HistoryPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-900 truncate">{meal.name}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {timingLabel && <span className="text-amber-600 font-medium">{timingLabel} · </span>}
+                    {timingLabel && (
+                      <span className="text-amber-600 font-medium">{timingLabel} · </span>
+                    )}
                     {categoryLabel} · {formLabel}
                   </p>
                 </div>
                 <span className="text-xs text-gray-400 flex-shrink-0">
                   {formatDate(meal.eaten_at)}
                 </span>
+
+                {/* Menu button */}
+                <div className="relative flex-shrink-0" ref={isMenuOpen ? menuRef : null}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenMenuId(isMenuOpen ? null : meal.id)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                    aria-label="操作メニュー"
+                  >
+                    ⋮
+                  </button>
+
+                  {isMenuOpen && (
+                    <div className="absolute right-0 top-9 z-20 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden w-28">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingMeal(meal);
+                          setOpenMenuId(null);
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-amber-50 transition-colors"
+                      >
+                        ✎ 編集
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(meal.id)}
+                        disabled={isDeleting}
+                        className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                      >
+                        {isDeleting ? '削除中…' : '🗑 削除'}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -179,6 +261,14 @@ export default function HistoryPage() {
 
       {showModal && (
         <AddMealModal onClose={() => setShowModal(false)} onAdded={handleAdded} />
+      )}
+
+      {editingMeal && (
+        <EditMealModal
+          meal={editingMeal}
+          onClose={() => setEditingMeal(null)}
+          onSaved={handleSaved}
+        />
       )}
     </div>
   );
