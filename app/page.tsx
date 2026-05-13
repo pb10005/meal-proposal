@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import type { Mood, MealForm } from '@/types/meal';
+import type { Mood, MealForm, MealTiming } from '@/types/meal';
 
 type TimeOption = 10 | 20 | 40;
 
@@ -26,11 +26,20 @@ const FORM_OPTIONS: { value: MealForm; label: string; desc: string }[] = [
   { value: 'buy', label: '買って済ます', desc: 'コンビニ・テイクアウト' },
 ];
 
+const TIMING_OPTIONS: { value: MealTiming; label: string; icon: string }[] = [
+  { value: 'breakfast', label: '朝食', icon: '🌅' },
+  { value: 'lunch', label: '昼食', icon: '☀️' },
+  { value: 'snack', label: 'おやつ', icon: '🍪' },
+  { value: 'dinner', label: '夕食', icon: '🌙' },
+  { value: 'late_night', label: '夜食', icon: '🌃' },
+];
+
 export default function HomePage() {
   const router = useRouter();
   const [mood, setMood] = useState<Mood | null>(null);
   const [timeMin, setTimeMin] = useState<TimeOption | null>(null);
   const [form, setForm] = useState<MealForm | null>(null);
+  const [timing, setTiming] = useState<MealTiming | null>(null);
   const [freeText, setFreeText] = useState('');
 
   const isValid = mood !== null && timeMin !== null && form !== null;
@@ -42,6 +51,7 @@ export default function HomePage() {
       mood,
       time_min: String(timeMin),
       form,
+      ...(timing ? { timing } : {}),
       ...(freeText.trim() ? { free_text: freeText.trim() } : {}),
     });
 
@@ -127,6 +137,32 @@ export default function HomePage() {
                 {opt.label}
               </span>
               <span className="text-xs text-gray-400 mt-0.5 text-center leading-tight">{opt.desc}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Timing */}
+      <section>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+          食事タイミング（任意）
+        </h2>
+        <div className="flex flex-wrap gap-2">
+          {TIMING_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setTiming(timing === opt.value ? null : opt.value)}
+              className={[
+                'flex items-center gap-1.5 px-4 py-2.5 rounded-2xl border-2 transition-all cursor-pointer',
+                timing === opt.value
+                  ? 'border-amber-500 bg-amber-50 shadow-sm'
+                  : 'border-gray-200 bg-white hover:border-amber-300 hover:bg-amber-50/50',
+              ].join(' ')}
+            >
+              <span className="text-base leading-none">{opt.icon}</span>
+              <span className={`text-sm font-bold ${timing === opt.value ? 'text-amber-700' : 'text-gray-800'}`}>
+                {opt.label}
+              </span>
             </button>
           ))}
         </div>

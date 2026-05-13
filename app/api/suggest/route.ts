@@ -7,12 +7,13 @@ import { applyHardBlock } from '@/lib/rules/hard-block';
 import { buildExclusionRules } from '@/lib/rules/exclusions';
 import { trackEvent } from '@/lib/analytics/track';
 import { FALLBACK_MEALS } from '@/config/fallback-meals';
-import { MealCategory, MealForm, Mood, SuggestResponse, UserPreferences } from '@/types/meal';
+import { MealCategory, MealForm, MealTiming, Mood, SuggestResponse, UserPreferences } from '@/types/meal';
 
 const SuggestInputSchema = z.object({
   mood: z.enum(['sappari', 'kottori', 'spicy', 'sweet']),
   time_min: z.union([z.literal(10), z.literal(20), z.literal(40)]),
   form: z.enum(['cook', 'eat_out', 'buy']),
+  timing: z.enum(['breakfast', 'lunch', 'snack', 'dinner', 'late_night']).optional(),
   free_text: z.string().max(200).optional(),
   budget_band: z.enum(['low', 'mid', 'high']).optional(),
 });
@@ -21,6 +22,7 @@ type SuggestInput = {
   mood: Mood;
   time_min: 10 | 20 | 40;
   form: MealForm;
+  timing?: MealTiming;
   free_text?: string;
   budget_band?: 'low' | 'mid' | 'high';
 };

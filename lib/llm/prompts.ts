@@ -1,4 +1,12 @@
-import { SuggestInput, UserPreferences, MealCategory } from '@/types/meal';
+import { SuggestInput, UserPreferences, MealCategory, MealTiming } from '@/types/meal';
+
+const TIMING_LABELS: Record<MealTiming, string> = {
+  breakfast: '朝食',
+  lunch: '昼食',
+  snack: 'おやつ・間食',
+  dinner: '夕食',
+  late_night: '夜食',
+};
 
 const MOOD_LABELS: Record<string, string> = {
   sappari: 'さっぱり（あっさり・軽め）',
@@ -64,6 +72,7 @@ export function buildSuggestPrompt(
 - 気分: ${MOOD_LABELS[input.mood] ?? input.mood}
 - 使える時間: ${input.time_min}分以内
 - 食事スタイル: ${FORM_LABELS[input.form] ?? input.form}
+${input.timing ? `- 食事タイミング: ${TIMING_LABELS[input.timing]}（このタイミングに合った量・内容にすること）` : ''}
 ${input.budget_band ? `- 予算感: ${input.budget_band === 'low' ? '安め（〜500円）' : input.budget_band === 'mid' ? '普通（500〜1500円）' : '高め（1500円〜）'}` : ''}
 ${input.free_text ? `- 追加リクエスト: ${input.free_text}` : ''}
 

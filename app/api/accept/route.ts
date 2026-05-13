@@ -9,6 +9,7 @@ const AcceptInputSchema = z.object({
   name: z.string(),
   category: z.string(),
   form: z.string(),
+  timing: z.enum(['breakfast', 'lunch', 'snack', 'dinner', 'late_night']).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { suggestion_log_id, candidate_id, name, category, form } = parsed.data;
+  const { suggestion_log_id, candidate_id, name, category, form, timing } = parsed.data;
 
   const supabase = await createClient();
   const {
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
           name,
           category,
           form,
+          timing: timing ?? null,
           eaten_at: new Date().toISOString(),
         })
         .select('id')
