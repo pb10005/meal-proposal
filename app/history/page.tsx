@@ -11,6 +11,7 @@ interface MealLogEntry {
   name: string;
   category: string;
   form: string;
+  timing: string | null;
   eaten_at: string;
 }
 
@@ -18,6 +19,14 @@ const FORM_LABELS: Record<string, string> = {
   cook: '自炊',
   eat_out: '外食',
   buy: '購入',
+};
+
+const TIMING_LABELS: Record<string, string> = {
+  breakfast: '朝食',
+  lunch: '昼食',
+  snack: 'おやつ',
+  dinner: '夕食',
+  late_night: '夜食',
 };
 
 function formatDate(isoString: string): string {
@@ -57,7 +66,7 @@ export default function HistoryPage() {
 
     const { data } = await supabase
       .from('meals_log')
-      .select('id, name, category, form, eaten_at')
+      .select('id, name, category, form, timing, eaten_at')
       .eq('user_id', user.id)
       .order('eaten_at', { ascending: false })
       .limit(50);
@@ -142,6 +151,7 @@ export default function HistoryPage() {
             const categoryLabel =
               MEAL_CATEGORY_LABELS[meal.category as MealCategory] ?? meal.category;
             const formLabel = FORM_LABELS[meal.form] ?? meal.form;
+            const timingLabel = meal.timing ? TIMING_LABELS[meal.timing] : null;
 
             return (
               <div
@@ -154,6 +164,7 @@ export default function HistoryPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-900 truncate">{meal.name}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
+                    {timingLabel && <span className="text-amber-600 font-medium">{timingLabel} · </span>}
                     {categoryLabel} · {formLabel}
                   </p>
                 </div>

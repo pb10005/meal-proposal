@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { MEAL_CATEGORIES } from '@/types/meal';
+import { MEAL_CATEGORIES, MEAL_TIMINGS } from '@/types/meal';
 
 const schema = z.object({
   name: z.string().min(1).max(100),
   category: z.enum(MEAL_CATEGORIES),
   form: z.enum(['cook', 'eat_out', 'buy']),
+  timing: z.enum(MEAL_TIMINGS).optional(),
   eaten_at: z.string().datetime().optional(),
 });
 
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { name, category, form, eaten_at } = parsed.data;
+  const { name, category, form, timing, eaten_at } = parsed.data;
 
   const { data, error } = await supabase
     .from('meals_log')
@@ -44,6 +45,7 @@ export async function POST(req: NextRequest) {
       name,
       category,
       form,
+      timing: timing ?? null,
       eaten_at: eaten_at ?? new Date().toISOString(),
     })
     .select('id')

@@ -17,6 +17,9 @@ export const MEAL_CATEGORIES = [
 
 export type MealCategory = (typeof MEAL_CATEGORIES)[number];
 export type MealForm = 'cook' | 'eat_out' | 'buy';
+
+export const MEAL_TIMINGS = ['breakfast', 'lunch', 'snack', 'dinner', 'late_night'] as const;
+export type MealTiming = (typeof MEAL_TIMINGS)[number];
 export type Mood = 'sappari' | 'kottori' | 'spicy' | 'sweet';
 export type BudgetBand = 'low' | 'mid' | 'high';
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { MEAL_CATEGORIES, type MealCategory, type MealForm } from '@/types/meal';
+import { MEAL_CATEGORIES, MEAL_TIMINGS, type MealCategory, type MealForm, type MealTiming } from '@/types/meal';
 import { MEAL_CATEGORY_LABELS, MEAL_CATEGORY_ICONS } from '@/config/meal-categories';
 
 interface AddMealModalProps {
@@ -16,6 +16,14 @@ const FORM_OPTIONS: { value: MealForm; label: string }[] = [
   { value: 'buy', label: '購入' },
 ];
 
+const TIMING_OPTIONS: { value: MealTiming; label: string }[] = [
+  { value: 'breakfast', label: '朝食' },
+  { value: 'lunch', label: '昼食' },
+  { value: 'snack', label: 'おやつ' },
+  { value: 'dinner', label: '夕食' },
+  { value: 'late_night', label: '夜食' },
+];
+
 function toLocalDatetimeValue(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -25,6 +33,7 @@ export function AddMealModal({ onClose, onAdded }: AddMealModalProps) {
   const [name, setName] = useState('');
   const [category, setCategory] = useState<MealCategory>('other');
   const [form, setForm] = useState<MealForm>('eat_out');
+  const [timing, setTiming] = useState<MealTiming | null>(null);
   const [eatenAt, setEatenAt] = useState(toLocalDatetimeValue(new Date()));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +53,7 @@ export function AddMealModal({ onClose, onAdded }: AddMealModalProps) {
           name: name.trim(),
           category,
           form,
+          ...(timing ? { timing } : {}),
           eaten_at: new Date(eatenAt).toISOString(),
         }),
       });
@@ -110,6 +120,27 @@ export function AddMealModal({ onClose, onAdded }: AddMealModalProps) {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">食事タイミング</label>
+            <div className="flex flex-wrap gap-2">
+              {TIMING_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setTiming(timing === opt.value ? null : opt.value)}
+                  className={[
+                    'px-3 py-1.5 rounded-xl text-sm font-medium border transition-colors',
+                    timing === opt.value
+                      ? 'bg-amber-500 text-white border-amber-500'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-amber-300',
+                  ].join(' ')}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div>
