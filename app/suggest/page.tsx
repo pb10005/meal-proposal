@@ -22,8 +22,10 @@ function SuggestContent() {
   const mood = searchParams.get('mood');
   const timeMin = searchParams.get('time_min');
   const form = searchParams.get('form');
+  const timing = searchParams.get('timing');
   const freeText = searchParams.get('free_text');
 
+  // timing is captured in closure via searchParams; pass it on accept
   const fetchSuggestions = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -42,6 +44,7 @@ function SuggestContent() {
         time_min: Number(timeMin),
         form,
       };
+      if (timing) body.timing = timing;
       if (freeText) body.free_text = freeText;
 
       const res = await fetch('/api/suggest', {
@@ -61,7 +64,7 @@ function SuggestContent() {
     } finally {
       setLoading(false);
     }
-  }, [mood, timeMin, form, freeText]);
+  }, [mood, timeMin, form, timing, freeText]);
 
   useEffect(() => {
     fetchSuggestions();
@@ -81,6 +84,7 @@ function SuggestContent() {
           name: candidate.name,
           category: candidate.category,
           form: candidate.form,
+          ...(timing ? { timing } : {}),
         }),
       });
       setAccepted(candidate);

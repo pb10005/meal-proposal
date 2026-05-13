@@ -27,6 +27,7 @@ export interface SuggestInput {
   mood: Mood;
   time_min: 10 | 20 | 40;
   form: MealForm;
+  timing?: MealTiming;
   free_text?: string;
   budget_band?: BudgetBand;
 }
