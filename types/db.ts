@@ -10,6 +10,9 @@ export interface Database {
           dislikes: string[];
           allergies: string[];
           dietary_restrictions: string[];
+          inferred_likes: string[];
+          inferred_categories: string[];
+          inferred_at: string | null;
           updated_at: string;
         };
         Insert: {
@@ -18,6 +21,9 @@ export interface Database {
           dislikes?: string[];
           allergies?: string[];
           dietary_restrictions?: string[];
+          inferred_likes?: string[];
+          inferred_categories?: string[];
+          inferred_at?: string | null;
         };
         Update: {
           user_id?: string;
@@ -25,6 +31,9 @@ export interface Database {
           dislikes?: string[];
           allergies?: string[];
           dietary_restrictions?: string[];
+          inferred_likes?: string[];
+          inferred_categories?: string[];
+          inferred_at?: string | null;
         };
         Relationships: [];
       };
