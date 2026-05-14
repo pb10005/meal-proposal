@@ -68,6 +68,21 @@ export async function POST(request: NextRequest) {
     } catch (err) {
       console.error('[accept] Failed to save meal log:', err);
     }
+
+    if (mealLogId) {
+      try {
+        const { inferPreferences } = await import('@/lib/preferences/infer');
+        const result = await inferPreferences(supabase, user.id);
+        await supabase.from('preferences').upsert({
+          user_id: user.id,
+          inferred_likes: result.inferred_likes,
+          inferred_categories: result.inferred_categories,
+          inferred_at: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.error('[accept] Failed to update inferred preferences:', err);
+      }
+    }
   }
 
   // Track analytics

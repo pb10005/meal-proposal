@@ -5,31 +5,18 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/Button';
 import { Tag } from '@/components/ui/Tag';
-import type { UserPreferences } from '@/types/meal';
+import { MEAL_CATEGORY_LABELS } from '@/config/meal-categories';
+import type { UserPreferences, MealCategory } from '@/types/meal';
 
-type PrefKey = keyof UserPreferences;
+type SafetyPrefKey = 'allergies' | 'dietary_restrictions';
 
 const SECTION_CONFIG: {
-  key: PrefKey;
+  key: SafetyPrefKey;
   label: string;
   placeholder: string;
   desc: string;
-  color: 'amber' | 'orange' | 'green' | 'blue' | 'purple' | 'gray';
+  color: 'purple' | 'blue';
 }[] = [
-  {
-    key: 'likes',
-    label: '好きな食材・料理',
-    placeholder: '例: 鶏肉、ラーメン、チーズ',
-    desc: '提案に反映されます',
-    color: 'green',
-  },
-  {
-    key: 'dislikes',
-    label: '嫌いな食材・料理',
-    placeholder: '例: 辛い、パクチー、納豆',
-    desc: 'できるだけ除外します',
-    color: 'orange',
-  },
   {
     key: 'allergies',
     label: 'アレルギー',
@@ -47,22 +34,22 @@ const SECTION_CONFIG: {
 ];
 
 export default function SettingsPage() {
-  const [prefs, setPrefs] = useState<UserPreferences>({
-    likes: [],
-    dislikes: [],
+  const [prefs, setPrefs] = useState<Pick<UserPreferences, SafetyPrefKey>>({
     allergies: [],
     dietary_restrictions: [],
   });
-  const [inputs, setInputs] = useState<Record<PrefKey, string>>({
-    likes: '',
-    dislikes: '',
+  const [inputs, setInputs] = useState<Record<SafetyPrefKey, string>>({
     allergies: '',
     dietary_restrictions: '',
   });
+  const [inferredLikes, setInferredLikes] = useState<string[]>([]);
+  const [inferredCategories, setInferredCategories] = useState<MealCategory[]>([]);
+  const [inferredAt, setInferredAt] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [reanalyzing, setReanalyzing] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -88,11 +75,12 @@ export default function SettingsPage() {
 
       if (data) {
         setPrefs({
-          likes: data.likes ?? [],
-          dislikes: data.dislikes ?? [],
           allergies: data.allergies ?? [],
           dietary_restrictions: data.dietary_restrictions ?? [],
         });
+        setInferredLikes((data.inferred_likes ?? []) as string[]);
+        setInferredCategories((data.inferred_categories ?? []) as MealCategory[]);
+        setInferredAt(data.inferred_at ?? null);
       }
 
       setLoading(false);
@@ -101,11 +89,10 @@ export default function SettingsPage() {
     load();
   }, []);
 
-  const addItem = (key: PrefKey) => {
+  const addItem = (key: SafetyPrefKey) => {
     const value = inputs[key].trim();
     if (!value) return;
 
-    // Allow comma-separated entries
     const items = value
       .split(/[,、，]/)
       .map((s) => s.trim())
@@ -118,7 +105,7 @@ export default function SettingsPage() {
     setInputs((prev) => ({ ...prev, [key]: '' }));
   };
 
-  const removeItem = (key: PrefKey, item: string) => {
+  const removeItem = (key: SafetyPrefKey, item: string) => {
     setPrefs((prev) => ({
       ...prev,
       [key]: prev[key].filter((i) => i !== item),
@@ -136,7 +123,8 @@ export default function SettingsPage() {
     try {
       await supabase.from('preferences').upsert({
         user_id: user.id,
-        ...prefs,
+        allergies: prefs.allergies,
+        dietary_restrictions: prefs.dietary_restrictions,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -147,10 +135,27 @@ export default function SettingsPage() {
     }
   };
 
+  const handleReanalyze = async () => {
+    setReanalyzing(true);
+    try {
+      const res = await fetch('/api/preferences/reanalyze', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setInferredLikes(data.inferred_likes ?? []);
+        setInferredCategories(data.inferred_categories ?? []);
+        setInferredAt(data.inferred_at ?? new Date().toISOString());
+      }
+    } catch (err) {
+      console.error('Reanalyze failed:', err);
+    } finally {
+      setReanalyzing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-4 pt-4">
-        {[...Array(4)].map((_, i) => (
+        {[...Array(3)].map((_, i) => (
           <div key={i} className="bg-white rounded-2xl p-5 animate-pulse space-y-3">
             <div className="h-4 bg-gray-200 rounded w-1/3" />
             <div className="h-10 bg-gray-100 rounded-xl" />
@@ -183,10 +188,65 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-xl font-bold text-gray-900">好み設定</h1>
         <p className="text-sm text-gray-500 mt-1">
-          設定した内容は食事提案に自動的に反映されます
+          食事ログをもとにAIが好みを自動分析します
         </p>
       </div>
 
+      {/* Inferred preferences (read-only) */}
+      <div className="bg-white rounded-2xl border border-amber-50 p-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold text-gray-900">AIが分析した好み</h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              食事ログから自動で推定されます
+              {inferredAt &&
+                ` · ${new Date(inferredAt).toLocaleDateString('ja-JP')}更新`}
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleReanalyze}
+            isLoading={reanalyzing}
+          >
+            再分析する
+          </Button>
+        </div>
+
+        {inferredLikes.length > 0 && (
+          <div>
+            <p className="text-xs text-gray-500 mb-1.5">よく食べる料理</p>
+            <div className="flex flex-wrap gap-2">
+              {inferredLikes.map((name) => (
+                <Tag key={name} color="green">
+                  {name}
+                </Tag>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {inferredCategories.length > 0 && (
+          <div>
+            <p className="text-xs text-gray-500 mb-1.5">よく選ぶカテゴリ</p>
+            <div className="flex flex-wrap gap-2">
+              {inferredCategories.map((cat) => (
+                <Tag key={cat} color="amber">
+                  {MEAL_CATEGORY_LABELS[cat] ?? cat}
+                </Tag>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {inferredLikes.length === 0 && inferredCategories.length === 0 && (
+          <p className="text-sm text-gray-400">
+            まだデータが不足しています。食事を記録すると自動で分析されます。
+          </p>
+        )}
+      </div>
+
+      {/* Safety preferences (manual input) */}
       {SECTION_CONFIG.map(({ key, label, placeholder, desc, color }) => (
         <div key={key} className="bg-white rounded-2xl border border-amber-50 p-5 space-y-3">
           <div>
@@ -194,7 +254,6 @@ export default function SettingsPage() {
             <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
           </div>
 
-          {/* Tags */}
           {prefs[key].length > 0 && (
             <div className="flex flex-wrap gap-2">
               {prefs[key].map((item) => (
@@ -213,7 +272,6 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* Input */}
           <div className="flex gap-2">
             <input
               type="text"

@@ -38,12 +38,22 @@ const CATEGORY_LABELS: Record<MealCategory, string> = {
   other: 'その他',
 };
 
+export interface InferredContext {
+  inferredLikes: string[];
+  inferredCategories: MealCategory[];
+}
+
 export function buildSuggestPrompt(
   input: SuggestInput,
   prefs: UserPreferences,
-  recentCategories: MealCategory[]
+  recentCategories: MealCategory[],
+  inferred: InferredContext = { inferredLikes: [], inferredCategories: [] }
 ): string {
   const recentCategoryLabels = recentCategories
+    .map((c) => CATEGORY_LABELS[c])
+    .join('、');
+
+  const inferredCategoryLabels = inferred.inferredCategories
     .map((c) => CATEGORY_LABELS[c])
     .join('、');
 
@@ -61,10 +71,8 @@ export function buildSuggestPrompt(
     exclusions.push(`最近食べたカテゴリ（できれば避ける）: ${recentCategoryLabels}`);
   }
 
-  const preferences: string[] = [];
-  if (prefs.likes.length > 0) {
-    preferences.push(`好きな食材/料理: ${prefs.likes.join('、')}`);
-  }
+  const hasInferred = inferred.inferredLikes.length > 0 || inferred.inferredCategories.length > 0;
+  const hasManualLikes = prefs.likes.length > 0;
 
   return `あなたは食事提案AIアシスタントです。ユーザーの条件に基づいて、ぴったりの食事を3つ提案してください。
 
@@ -76,14 +84,22 @@ ${input.timing ? `- 食事タイミング: ${TIMING_LABELS[input.timing]}（こ�
 ${input.budget_band ? `- 予算感: ${input.budget_band === 'low' ? '安め（〜500円）' : input.budget_band === 'mid' ? '普通（500〜1500円）' : '高め（1500円〜）'}` : ''}
 ${input.free_text ? `- 追加リクエスト: ${input.free_text}` : ''}
 
-${preferences.length > 0 ? `## ユーザーの好み\n${preferences.join('\n')}` : ''}
+${hasInferred ? `## 好みの傾向（参考情報）
+${inferred.inferredLikes.length > 0 ? `- よく食べる料理: ${inferred.inferredLikes.join('、')}（参考程度。必ずしも同じ系統でなくてよい）` : ''}
+${inferred.inferredCategories.length > 0 ? `- よく選ぶカテゴリ: ${inferredCategoryLabels}（このカテゴリに偏りすぎないこと）` : ''}` : ''}
+
+${hasManualLikes ? `## ユーザーの手動設定（強めに考慮）
+- 好きな食材/料理: ${prefs.likes.join('、')}` : ''}
 
 ${exclusions.length > 0 ? `## 除外条件（必ず守ること）\n${exclusions.join('\n')}` : ''}
 
 ## 指示
-- 上記の条件をすべて満たす食事を3つ提案してください
-- 各提案はユニークで、バリエーションを持たせてください
-- 除外条件は絶対に守ってください
+- 以下の構成で食事を3つ提案してください：
+  - 提案1・2：ユーザーの好みに合った「安心感のある定番案」（互いに異なるcategoryであること）
+  - 提案3：ユーザーの傾向から外れた「新しい発見案」（よく選ぶカテゴリ以外から選ぶこと）
+- 3つすべて異なるcategoryフィールドを使用すること（重複不可）
+- 除外条件は絶対に守ること
+- 好みの傾向は参考情報であり、提案の多様性を優先すること
 - 自炊の場合は具体的なレシピを含めてください
 - 外食・購入の場合は具体的な店舗タイプや商品を提案してください
 

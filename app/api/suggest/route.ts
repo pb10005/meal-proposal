@@ -8,6 +8,7 @@ import { buildExclusionRules } from '@/lib/rules/exclusions';
 import { trackEvent } from '@/lib/analytics/track';
 import { FALLBACK_MEALS } from '@/config/fallback-meals';
 import { MealCategory, MealForm, MealTiming, Mood, SuggestResponse, UserPreferences } from '@/types/meal';
+import type { InferredContext } from '@/lib/llm/prompts';
 
 const SuggestInputSchema = z.object({
   mood: z.enum(['sappari', 'kottori', 'spicy', 'sweet']),
@@ -62,6 +63,7 @@ export async function POST(request: NextRequest) {
   };
 
   let recentCategories: MealCategory[] = [];
+  let inferred: InferredContext = { inferredLikes: [], inferredCategories: [] };
 
   if (user) {
     // Fetch preferences
@@ -77,6 +79,10 @@ export async function POST(request: NextRequest) {
         dislikes: prefsData.dislikes ?? [],
         allergies: prefsData.allergies ?? [],
         dietary_restrictions: prefsData.dietary_restrictions ?? [],
+      };
+      inferred = {
+        inferredLikes: (prefsData.inferred_likes ?? []) as string[],
+        inferredCategories: (prefsData.inferred_categories ?? []) as MealCategory[],
       };
     }
 
@@ -111,7 +117,7 @@ export async function POST(request: NextRequest) {
   let llmError: string | null = null;
 
   try {
-    const prompt = buildSuggestPrompt(input, prefs, recentCategories);
+    const prompt = buildSuggestPrompt(input, prefs, recentCategories, inferred);
     const llmCandidates = await generateMealSuggestions(prompt);
     candidates = applyHardBlock(
       llmCandidates,
