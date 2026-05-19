@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import type { Mood, MealForm, MealTiming } from '@/types/meal';
 
@@ -34,13 +34,26 @@ const TIMING_OPTIONS: { value: MealTiming; label: string; icon: string }[] = [
   { value: 'late_night', label: '夜食', icon: '🌃' },
 ];
 
-export default function HomePage() {
+const TIME_VALUES: TimeOption[] = [10, 20, 40];
+
+function HomeContent() {
   const router = useRouter();
-  const [mood, setMood] = useState<Mood | null>(null);
-  const [timeMin, setTimeMin] = useState<TimeOption | null>(null);
-  const [form, setForm] = useState<MealForm | null>(null);
-  const [timing, setTiming] = useState<MealTiming | null>(null);
-  const [freeText, setFreeText] = useState('');
+  const searchParams = useSearchParams();
+
+  const initialMood = (searchParams.get('mood') as Mood) || null;
+  const initialTimeRaw = Number(searchParams.get('time_min'));
+  const initialTime = TIME_VALUES.includes(initialTimeRaw as TimeOption)
+    ? (initialTimeRaw as TimeOption)
+    : null;
+  const initialForm = (searchParams.get('form') as MealForm) || null;
+  const initialTiming = (searchParams.get('timing') as MealTiming) || null;
+  const initialFreeText = searchParams.get('free_text') || '';
+
+  const [mood, setMood] = useState<Mood | null>(initialMood);
+  const [timeMin, setTimeMin] = useState<TimeOption | null>(initialTime);
+  const [form, setForm] = useState<MealForm | null>(initialForm);
+  const [timing, setTiming] = useState<MealTiming | null>(initialTiming);
+  const [freeText, setFreeText] = useState(initialFreeText);
 
   const isValid = mood !== null && timeMin !== null && form !== null;
 
@@ -202,5 +215,13 @@ export default function HomePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="space-y-8 pt-2 animate-pulse" />}>
+      <HomeContent />
+    </Suspense>
   );
 }

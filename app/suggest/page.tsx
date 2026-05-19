@@ -104,7 +104,13 @@ function SuggestContent() {
   };
 
   const handleChangeConditions = () => {
-    router.push('/');
+    const params = new URLSearchParams();
+    if (mood) params.set('mood', mood);
+    if (timeMin) params.set('time_min', timeMin);
+    if (form) params.set('form', form);
+    if (timing) params.set('timing', timing);
+    if (freeText) params.set('free_text', freeText);
+    router.push(`/?${params.toString()}`);
   };
 
   // Success state
