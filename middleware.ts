@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
+const MIDDLEWARE_TIMEOUT_MS = 1000;
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -25,8 +27,12 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session if expired — required for Server Components
-  await supabase.auth.getUser();
+  // Refresh session with a timeout to prevent Vercel middleware timeout (MIDDLEWARE_INVOCATION_TIMEOUT).
+  // getUser() makes a network call to Supabase; on cold starts this can exceed Vercel's ~1.5s limit.
+  const timeout = new Promise<void>((resolve) =>
+    setTimeout(resolve, MIDDLEWARE_TIMEOUT_MS)
+  );
+  await Promise.race([supabase.auth.getUser(), timeout]);
 
   return supabaseResponse;
 }
